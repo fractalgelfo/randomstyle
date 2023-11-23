@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+</head>
+
+
+<body>
+
+    <div id="top"></div>
+    <h1>Random Style Generator</h1>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        button {
+            font-size: 16px;
+            padding: 20px;
+            margin-top: 10px;
+            border-radius: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        #top {
+            margin-top: 50px;
+        }
+
+        #bottom {
+            margin-bottom: 100px;
+        }
+
+        #output-container {
+            margin-top: 20px;
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+            border-style: solid;
+            border-color: lightgreen;
+            border-width: 5px;
+            margin-left: 50px;
+            margin-right: 50px;
+        }
+
+        #output {
+            font-size: 24px;
+            font-weight: bold;
+            color: #555;
+            text-align: center;
+        }
+
+        .parameter-section {
+            margin-top: 20px;
+            border-radius: 10px;
+            padding: 30px;
+            display: inline-block;
+            margin-right: 10px;
+            text-align: left;
+        }
+
+        .parameter-section.on {
+            background-color: lightgreen;
+        }
+
+        .parameter-section.off {
+            background-color: lightgrey;
+        }
+
+        label {
+            cursor: pointer;
+            display: block;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+
+        textarea {
+            height: 10em;
+            margin-top: 5px;
+        }
+
+        #autoRegenerateContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #optionsContainer {
+            margin-top: 20px;
+        }
+
+        #parameterContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .checkbox-option {
+            display: inline-block;
+            margin-right: 10px;
+            text-align: left;
+        }
+    </style>
+
+    <div id="autoRegenerateContainer">
+        <input type="checkbox" id="autoRegenerateCheckbox" checked>
+        Auto Regenerate every <input type="text" id="regenerateInterval" value="30" oninput="restartAutoRegenerate()">
+        seconds
+    </div>
+
+    <div id="output-container">
+        <div id="output">(awaiting generation)</div>
+    </div>
+
+    <button onclick="generateExercise()">Generate New Combo</button>
+
+    <div id="optionsContainer">
+        <div class="checkbox-option" onclick="toggleCheckboxOption('newlineCheckbox')">
+            <label for="newlineCheckbox"><input type="checkbox" id="newlineCheckbox" checked> Put each new parameter on
+                    a newline</label>
+        </div>
+        <div class="checkbox-option" onclick="toggleCheckboxOption('includeNameCheckbox')">
+            <label for="includeNameCheckbox"> <input type="checkbox" id="includeNameCheckbox"> Include parameter name
+                    before the parameter</label>
+        </div>
+    </div>
+
+    <div id="parameterContainer"></div>
+
+    <script>
+        let autoRegenerateInterval;
+
+        const parameters = [
+            { name: "Articulation", elements: ["Staccato", "Portato", "Sostenuto", "Liquid Slur", "Clean Slur", "Barely Separate"], defaultOn: true },
+            { name: "Dynamic", elements: ["ppp", "pp", "p", "mp", "mf", "f", "ff", "fff"], defaultOn: true },
+            { name: "Style", elements: ["Baroque", "Classical", "Early Romantic", "Late Romantic", "Mahler", "Strauss", "Wagner", "Prokofiev", "Shostakovich", "Stravinsky", "Ravel", "Debussy", "Mozart", "Beethoven", "Schubert", "Mendelssohn"], defaultOn: false },
+            { name: "Feeling", elements: ["Happy", "Sad", "Neutral", "Calm", "Relaxed", "Passionate", "Longing", "Fearful", "Menacing", "Celebratory", "Noble", "Ecstatic"], defaultOn: false }
+        ];
+
+        function initializeParameters() {
+            const parameterContainer = document.getElementById('parameterContainer');
+
+            parameters.forEach(param => {
+                const parameterSection = document.createElement('div');
+                parameterSection.classList.add('parameter-section', param.defaultOn ? 'on' : 'off');
+                parameterSection.id = `${param.name}CheckboxSection`;
+
+                const checkboxContainer = document.createElement('div');
+                checkboxContainer.style.display = 'inline-block';
+
+                const parameterCheckbox = document.createElement('input');
+                parameterCheckbox.type = 'checkbox';
+                parameterCheckbox.id = `${param.name}Checkbox`;
+                parameterCheckbox.checked = param.defaultOn;
+
+                function handleToggle(event) {
+                    if (event.target.tagName.toLowerCase() === 'textarea') {
+                        return;
+                    }
+                    toggleCheckbox(`${param.name}Checkbox`);
+                    handleUpdate();
+                }
+
+                function handleUpdate() {
+                    updateParameterSectionStyle(`${param.name}CheckboxSection`);
+                    generateExercise();
+                }
+
+                parameterCheckbox.addEventListener('click', handleUpdate);
+
+                const toggleDiv = document.createElement('div');
+                toggleDiv.style.display = 'inline-block';
+                toggleDiv.style.cursor = 'pointer';
+                toggleDiv.style.marginLeft = '5px';
+                toggleDiv.innerText = param.name;
+
+                checkboxContainer.appendChild(parameterCheckbox);
+                parameterSection.appendChild(checkboxContainer);
+                parameterSection.appendChild(toggleDiv);
+
+                const parameterTextarea = document.createElement('textarea');
+                parameterTextarea.id = `${param.name}Textarea`;
+                parameterTextarea.placeholder = 'Enter elements...';
+                parameterTextarea.value = param.elements.join('\n');
+
+                parameterSection.appendChild(document.createElement('br'));
+                parameterSection.appendChild(parameterTextarea);
+
+                parameterContainer.appendChild(parameterSection);
+                parameterSection.addEventListener('click', handleToggle);
+            });
+        }
+
+        function toggleCheckbox(checkboxId) {
+            const checkbox = document.getElementById(checkboxId);
+            checkbox.checked = !checkbox.checked;
+            updateParameterSectionStyle(`${checkboxId}Section`);
+        }
+
+        function toggleCheckboxOption(checkboxId) {
+            const checkbox = document.getElementById(checkboxId);
+            checkbox.checked = !checkbox.checked;
+            generateExercise();
+        }
+
+        function updateParameterSectionStyle(sectionId) {
+            const parameterSection = document.getElementById(sectionId);
+            if (parameterSection) {
+                if (document.getElementById(sectionId.replace("CheckboxSection", "Checkbox")).checked) {
+                    parameterSection.classList.remove('off');
+                    parameterSection.classList.add('on');
+                } else {
+                    parameterSection.classList.remove('on');
+                    parameterSection.classList.add('off');
+                }
+            }
+        }
+
+        function generateExercise() {
+            const outputDiv = document.getElementById("output");
+            outputDiv.innerHTML = "(awaiting generation)";
+
+            let exercise = "";
+
+            parameters.forEach(param => {
+                const checkbox = document.getElementById(`${param.name}Checkbox`);
+                const textarea = document.getElementById(`${param.name}Textarea`);
+
+                if (checkbox && textarea && checkbox.checked) {
+                    const lines = textarea.value.split('\n');
+                    const filteredLines = lines.filter(line => line.trim() !== '');
+
+                    if (filteredLines.length > 0) {
+                        if (document.getElementById('includeNameCheckbox').checked) {
+                            exercise += param.name + ": ";
+                        }
+                        const line = filteredLines[Math.floor(Math.random() * filteredLines.length)].trim();
+                        const formatStart = (param.name.toLowerCase() == "dynamic") ? "<i>" : "";
+                        const formatEnd = (param.name.toLowerCase() == "dynamic") ? "</i>" : "";
+
+                        exercise += formatStart + line + formatEnd;
+
+                        if (document.getElementById('newlineCheckbox').checked) {
+                            exercise += "<br>";
+                        } else {
+                            exercise += " ";
+                        }
+                    }
+                }
+            });
+
+            outputDiv.innerHTML = exercise.trim();
+        }
+
+        function startAutoRegenerate() {
+            const interval = parseInt(document.getElementById('regenerateInterval').value) * 1000;
+            autoRegenerateInterval = setInterval(generateExercise, interval);
+        }
+
+        function stopAutoRegenerate() {
+            clearInterval(autoRegenerateInterval);
+        }
+
+        function restartAutoRegenerate() {
+            stopAutoRegenerate();
+            startAutoRegenerate();
+        }
+
+        function evalAutoRegenerate() {
+            if (document.getElementById('autoRegenerateCheckbox').checked) {
+                startAutoRegenerate();
+            } else {
+                stopAutoRegenerate();
+            }
+        }
+
+        document.getElementById('autoRegenerateCheckbox').addEventListener('change', evalAutoRegenerate);
+
+        document.getElementById('autoRegenerateContainer').addEventListener('click', function (event) {
+            if (event.target !== document.getElementById('regenerateInterval') && event.target !== document.getElementById('autoRegenerateCheckbox')) {
+                const autoRegenerateCheckbox = document.getElementById('autoRegenerateCheckbox');
+                autoRegenerateCheckbox.checked = !autoRegenerateCheckbox.checked;
+                evalAutoRegenerate();
+            }
+        });
+
+        // Initialize parameters and evaluate auto-regenerate on page load
+        initializeParameters();
+        generateExercise();
+        evalAutoRegenerate();
+    </script>
+
+    <div id="bottom"></div>
+
+</body>
+
+</html>
+
+
+</html>
